@@ -179,8 +179,13 @@ with st.sidebar:
     st.markdown("---")
     uploaded = st.file_uploader("Upload Employee CSV", type=["csv"])
     st.markdown("---")
-    openai_key = st.text_input("OpenAI API Key (for AI Report)", type="password",
-                               placeholder="sk-...")
+    _secret_key = st.secrets.get("GROQ_API_KEY", "") if hasattr(st, "secrets") else ""
+    openai_key = st.text_input(
+        "Groq API Key (for AI Report)",
+        value=_secret_key,
+        type="password",
+        placeholder="gsk_...  (free at console.groq.com)",
+    )
     st.markdown("---")
     st.markdown("**Navigation**")
     section = st.radio("Go to", [
@@ -458,16 +463,19 @@ elif section == "🏆 Top Candidates":
 # ═══════════════════════════════════════════════════════════
 elif section == "🤖 AI Skill Gap Report":
     st.markdown('<div class="section-header">AI-Generated Skill Gap Report</div>', unsafe_allow_html=True)
-    st.info("This uses OpenAI GPT-4o-mini to generate an intelligent analysis. Add your API key in the sidebar.")
+    st.info("This uses Groq (free tier) to generate an intelligent analysis. Get your free API key at [console.groq.com](https://console.groq.com) and paste it in the sidebar.")
 
     if st.button("🚀 Generate Report"):
-        key = openai_key or os.getenv("OPENAI_API_KEY", "")
-        if not key or key.startswith("sk-REPLACE"):
-            st.error("Please enter a valid OpenAI API key in the sidebar.")
+        key = openai_key or os.getenv("GROQ_API_KEY", "")
+        if not key:
+            st.error("Please enter your Groq API key in the sidebar. Get one free at console.groq.com")
         else:
             try:
                 from openai import OpenAI
-                client = OpenAI(api_key=key)
+                client = OpenAI(
+                    api_key=key,
+                    base_url="https://api.groq.com/openai/v1",
+                )
 
                 payload = {
                     "role_sizes"          : role_sizes,
@@ -487,7 +495,7 @@ JSON:
 """
                 with st.spinner("Generating AI report..."):
                     resp = client.chat.completions.create(
-                        model="gpt-4o-mini",
+                        model="llama-3.3-70b-versatile",
                         messages=[{"role": "user", "content": prompt}],
                         temperature=0.4,
                     )
@@ -495,7 +503,7 @@ JSON:
                 st.markdown(report)
 
             except Exception as e:
-                st.error(f"OpenAI error: {e}")
+                st.error(f"Groq API error: {e}")
 
 # ═══════════════════════════════════════════════════════════
 # 7. STUDY RESOURCES
